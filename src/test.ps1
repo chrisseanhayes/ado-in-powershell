@@ -25,33 +25,27 @@ function get-ado-web-client{
 }
 $currentversion = "5.1"
 $organization = "chrisseanhayes"
-$getadoprojecturlwithversion = {
-    param([string]$version, [string]$organization) `
-        return {
-                return "https://dev.azure.com/$organization/_apis/projects?api-version=$version"
-        }.GetNewClosure()
-    }
-$getadoprojecturl = & $getadoprojecturlwithversion $currentversion $organization
-$function:getprojecturl = $getadoprojecturl
-
-$getadoobjectwithclient = {
-    param($client) `
-        return {
-            return { param($url) {
-                $response = $client.GetAsync($url).Result
-
-                $result = $response.Content.ReadAsStringAsync().Result
-                
-                $object = ConvertFrom-Json $result
-                
-                return $object
-            }}.GetNewClosure()
-        }
+function getadoprojecturlwithversion([string]$version, [string]$organization) {
+    return {
+            return "https://dev.azure.com/$organization/_apis/projects?api-version=$version"
+    }.GetNewClosure()
 }
-$client = get-ado-web-client
-$getadoobject = & $getadoobjectwithclient $client
-$function:getadoobject = $getadoobject
+$function:getprojecturl = getadoprojecturlwithversion $currentversion $organization
 
-$project = getadoobject getprojecturl
+function getadoobjectwithclient($client){
+    return {
+        param($url) 
+        $response = $client.GetAsync($url).Result
+
+        $result = $response.Content.ReadAsStringAsync().Result
+        
+        $object = ConvertFrom-Json $result
+        
+        return $object
+    }.GetNewClosure()
+}
+$function:getadoobject = getadoobjectwithclient $(get-ado-web-client)
+
+$project = getadoobject $(getprojecturl)
 
 $project
